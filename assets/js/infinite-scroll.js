@@ -1,198 +1,221 @@
 /**
- * Simple Infinite Scroll
- * Modern, high-performance infinite scroll for WordPress archives.
+ * Weblazer Infinite Scroll
+ * High-performance, multi-instance infinite scroll for WordPress block themes.
  */
 (function () {
     'use strict';
 
-    if (typeof simple_infinite_scroll === 'undefined') return;
-
-    const settings = simple_infinite_scroll;
-    let isLoading = false;
-    let currentPage = parseInt(settings.current_page);
-    let maxPages = parseInt(settings.max_pages);
-    const baseUrl = settings.base_url;
-
-    const CONTAINER_SELECTOR = '.wp-block-post-template';
+    const settings = typeof weblazer_settings !== 'undefined' ? weblazer_settings : {};
+    const SELECTOR_QUERY = '.wp-block-query[data-weblazer-next]';
+    const SELECTOR_TEMPLATE = '.wp-block-post-template';
 
     /**
-     * Main Initialization
+     * Infinite Scroll Instance Class
      */
-    const init = () => {
-        const container = document.querySelector(CONTAINER_SELECTOR);
-        if (!container) return;
+    class WeblazerInfiniteScroll {
+        constructor(queryBlock) {
+            this.queryBlock = queryBlock;
+            this.container = queryBlock.querySelector(SELECTOR_TEMPLATE);
+            if (!this.container) return;
 
-        const pagination = document.querySelector('.wp-block-query-pagination, .navigation.pagination');
-        if (pagination) pagination.style.display = 'none';
+            this.nextUrl = queryBlock.getAttribute('data-weblazer-next');
+            this.initialUrl = window.location.href; // Store the original URL
+            this.isLoading = false;
+            this.urlObserver = null;
 
-        markPostsWithPage(container, currentPage);
-
-        if (currentPage < maxPages) {
-            setupInfiniteScroll(container);
+            this.init();
         }
 
-        setupUrlTracking();
-    };
+        init() {
+            this.setupUrlObserver();
 
-    /**
-     * Mark posts with their page number
-     */
-    const markPostsWithPage = (container, pageNum) => {
-        const posts = container.children;
-        if (posts.length > 0) {
-            posts[0].setAttribute('data-sis-page-start', pageNum);
-            posts[0].setAttribute('data-sis-page-url', window.location.href);
-            
-            Array.from(posts).forEach(post => {
-                if (!post.hasAttribute('data-sis-page')) {
-                    post.setAttribute('data-sis-page', pageNum);
-                }
-            });
-        }
-    };
-
-    /**
-     * Setup the infinite scroll observer
-     */
-    const setupInfiniteScroll = (container) => {
-        const sentinel = document.createElement('div');
-        sentinel.id = 'infinite-scroll-sentinel';
-        sentinel.style.width = '100%';
-        sentinel.style.height = '1px';
-        container.after(sentinel);
-
-        const scrollObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting && !isLoading && currentPage < maxPages) {
-                    loadNextPage(container, scrollObserver, sentinel);
-                }
-            });
-        }, { rootMargin: '0px 0px 800px 0px' });
-
-        scrollObserver.observe(sentinel);
-    };
-
-    /**
-     * Load next page via Fetch API
-     */
-    const loadNextPage = async (container, observer, sentinel) => {
-        isLoading = true;
-        const nextPage = currentPage + 1;
-
-        // Show Loading Indicator
-        const loadingIndicator = createStatusMessage(settings.loading_text, 'loading-indicator');
-        document.body.appendChild(loadingIndicator);
-
-        let nextUrl;
-        if (baseUrl.includes('?')) {
-            nextUrl = baseUrl.includes('paged=') 
-                ? baseUrl.replace(/paged=\d+/, 'paged=' + nextPage)
-                : baseUrl + '&paged=' + nextPage;
-        } else {
-            nextUrl = baseUrl + 'page/' + nextPage + '/';
-        }
-
-        try {
-            const response = await fetch(nextUrl);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            
-            const html = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newPostsContainer = doc.querySelector(CONTAINER_SELECTOR);
-
-            if (newPostsContainer && newPostsContainer.children.length > 0) {
-                const newPosts = Array.from(newPostsContainer.children);
-                
-                newPosts[0].setAttribute('data-sis-page-start', nextPage);
-                newPosts[0].setAttribute('data-sis-page-url', nextUrl);
-
-                newPosts.forEach(post => {
-                    post.setAttribute('data-sis-page', nextPage);
-                    container.appendChild(post.cloneNode(true));
-                });
-
-                currentPage = nextPage;
-                isLoading = false;
-                loadingIndicator.remove();
-
-                document.dispatchEvent(new CustomEvent('simple:infinite-scroll:posts-loaded', {
-                    detail: { page: currentPage, url: nextUrl }
-                }));
-
-                setupUrlTracking();
-
-                if (currentPage >= maxPages) {
-                    displayEndMessage(container, observer, sentinel);
-                }
-            } else {
-                throw new Error('No more posts found');
+            // Mark the very first post with the initial URL for tracking when scrolling back up
+            if (this.container.children.length > 0) {
+                this.markForUrlTracking(this.container.children[0], this.initialUrl);
             }
 
-        } catch (error) {
-            console.error('Simple Infinite Scroll:', error);
-            loadingIndicator.remove();
-            const errorMsg = createStatusMessage(settings.error_text, 'error-message');
-            sentinel.before(errorMsg);
-            isLoading = false;
+            // Hide existing pagination
+            const pagination = this.queryBlock.querySelector('.wp-block-query-pagination, .navigation.pagination');
+            if (pagination) pagination.style.display = 'none';
+
+            this.setupObserver();
         }
-    };
+
+        setupObserver() {
+            const sentinel = document.createElement('div');
+            sentinel.className = 'weblazer-sentinel';
+            sentinel.style.width = '100%';
+            sentinel.style.height = '1px';
+            this.container.after(sentinel);
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && !this.isLoading && this.nextUrl) {
+                        this.loadNextPage(observer, sentinel);
+                    }
+                });
+            }, { rootMargin: '0px 0px 800px 0px' });
+
+            observer.observe(sentinel);
+        }
+
+        async loadNextPage(observer, sentinel) {
+            this.isLoading = true;
+
+            const loadingIndicator = this.createStatusMessage(settings.loading_text, 'weblazer-loading-indicator');
+            this.queryBlock.after(loadingIndicator);
+
+            try {
+                // Try fetching with the next URL
+                const response = await fetch(this.nextUrl);
+                
+                // End of posts: 404 is common when WP calculation differs from actual query
+                if (response.status === 404) {
+                    this.finish(observer, sentinel, loadingIndicator);
+                    return;
+                }
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Find correctly the containers in the new document
+                const newQueryBlock = doc.querySelector(SELECTOR_QUERY) || doc.querySelector('.wp-block-query');
+                const newPostsContainer = doc.querySelector(SELECTOR_TEMPLATE);
+
+                if (newPostsContainer && newPostsContainer.children.length > 0) {
+                    const newPosts = Array.from(newPostsContainer.children);
+                    
+                    // Track existing post IDs to avoid duplicates
+                    const existingIds = Array.from(this.container.querySelectorAll('[class*="post-"]'))
+                        .map(el => {
+                            const match = el.className.match(/post-(\d+)/);
+                            return match ? match[1] : null;
+                        }).filter(id => id !== null);
+
+                    let addedCount = 0;
+                    const pageUrl = this.nextUrl;
+
+                    newPosts.forEach((post, index) => {
+                        const postMatch = post.className.match(/post-(\d+)/);
+                        const postId = postMatch ? postMatch[1] : null;
+
+                        // Only add if not already in the container
+                        if (!postId || !existingIds.includes(postId)) {
+                            const clone = post.cloneNode(true);
+                            if (index === 0) {
+                                this.markForUrlTracking(clone, pageUrl);
+                            }
+                            this.container.appendChild(clone);
+                            addedCount++;
+                        }
+                    });
+
+                    // Update the "Next" URL from the fetched document
+                    this.nextUrl = newQueryBlock ? newQueryBlock.getAttribute('data-weblazer-next') : null;
+                    
+                    // Fallback to standard pagination search if no attribute
+                    if (!this.nextUrl) {
+                        const nextLink = doc.querySelector('.wp-block-query-pagination-next');
+                        this.nextUrl = nextLink ? nextLink.href : null;
+                    }
+
+                    this.isLoading = false;
+                    loadingIndicator.remove();
+
+                    if (addedCount > 0) {
+                        document.dispatchEvent(new CustomEvent('weblazer:infinite-scroll:posts-loaded', {
+                            detail: { url: pageUrl, container: this.container, count: addedCount }
+                        }));
+                    }
+
+                    // If we didn't add anything or no more pages, we are done
+                    if (addedCount === 0 || !this.nextUrl) {
+                        this.finish(observer, sentinel);
+                    }
+                } else {
+                    this.finish(observer, sentinel, loadingIndicator);
+                }
+
+            } catch (error) {
+                console.error('Weblazer Infinite Scroll:', error);
+                loadingIndicator.remove();
+                const errorMsg = this.createStatusMessage(settings.error_text || 'Error loading posts.', 'weblazer-error-message');
+                sentinel.before(errorMsg);
+                this.isLoading = false;
+            }
+        }
+
+        finish(observer, sentinel, loadingIndicator = null) {
+            if (loadingIndicator) loadingIndicator.remove();
+            observer.unobserve(sentinel);
+            sentinel.remove();
+            
+            const endMessage = this.createStatusMessage(settings.no_more_text, 'weblazer-no-more-posts-message');
+            this.container.after(endMessage);
+            this.nextUrl = null;
+        }
+
+        extractPageNumber(url) {
+            const match = url.match(/page\/(\d+)/) || url.match(/paged=(\d+)/);
+            return match ? match[1] : null;
+        }
+
+        setupUrlObserver() {
+            this.urlObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const pageUrl = entry.target.getAttribute('data-weblazer-page-url');
+                        if (pageUrl && window.location.href !== pageUrl) {
+                            history.replaceState(null, '', pageUrl);
+                        }
+                    }
+                });
+            }, { threshold: 0.5, rootMargin: '-10% 0px -40% 0px' });
+        }
+
+        markForUrlTracking(element, url) {
+            element.setAttribute('data-weblazer-page-url', url);
+            this.urlObserver.observe(element);
+        }
+
+        createStatusMessage(text, className) {
+            const div = document.createElement('div');
+            div.className = className;
+            
+            if (className === 'weblazer-loading-indicator') {
+                const spinner = document.createElement('div');
+                spinner.className = 'weblazer-spinner';
+                const p = document.createElement('p');
+                p.textContent = text;
+                div.appendChild(spinner);
+                div.appendChild(p);
+            } else {
+                div.textContent = text;
+            }
+            
+            return div;
+        }
+    }
 
     /**
-     * URL Tracking
+     * Initialization
      */
-    let urlObserver;
-    const setupUrlTracking = () => {
-        if (urlObserver) urlObserver.disconnect();
-
-        urlObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const pageUrl = entry.target.getAttribute('data-sis-page-url');
-                    if (pageUrl && window.location.href !== pageUrl) {
-                        history.replaceState(null, '', pageUrl);
-                    }
-                }
-            });
-        }, { threshold: 0.1, rootMargin: '-10% 0px -80% 0px' });
-
-        document.querySelectorAll('[data-sis-page-start]').forEach(marker => {
-            urlObserver.observe(marker);
+    const initAll = () => {
+        const queryBlocks = document.querySelectorAll(SELECTOR_QUERY);
+        queryBlocks.forEach(block => {
+            if (!block.weblazer_instance) {
+                block.weblazer_instance = new WeblazerInfiniteScroll(block);
+            }
         });
     };
 
-    /**
-     * Helpers - Using createElement instead of innerHTML for security headers compliance
-     */
-    const createStatusMessage = (text, className) => {
-        const div = document.createElement('div');
-        div.className = className;
-        
-        if (className === 'loading-indicator') {
-            const spinner = document.createElement('div');
-            spinner.className = 'spinner';
-            const p = document.createElement('p');
-            p.textContent = text;
-            div.appendChild(spinner);
-            div.appendChild(p);
-        } else {
-            div.textContent = text;
-        }
-        
-        return div;
-    };
-
-    const displayEndMessage = (container, observer, sentinel) => {
-        observer.unobserve(sentinel);
-        sentinel.remove();
-        const endMessage = createStatusMessage(settings.no_more_text, 'no-more-posts-message');
-        container.after(endMessage);
-    };
-
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', initAll);
     } else {
-        init();
+        initAll();
     }
 
 })();

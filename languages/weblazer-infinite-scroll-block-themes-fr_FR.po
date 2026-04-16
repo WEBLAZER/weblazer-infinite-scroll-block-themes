@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Simple Infinite Scroll 1.0.0\n"
+"Project-Id-Version: Weblazer Infinite Scroll for Block Themes 1.0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-04 10:40+0100\n"
-"PO-Revision-Date: 2026-03-04 10:40+0100\n"
+"POT-Creation-Date: 2026-04-09 11:40+0100\n"
+"PO-Revision-Date: 2026-04-09 11:40+0100\n"
 "Last-Translator: Weblazer\n"
 "Language-Team: French\n"
 "Language: fr_FR\n"
@@ -11,16 +11,16 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 3.4.4\n"
-"X-Domain: simple-infinite-scroll\n"
+"X-Domain: weblazer-infinite-scroll-block-themes\n"
 
-#: simple-infinite-scroll.php:124
+#: weblazer-infinite-scroll-block-themes.php:135
 msgid "Loading posts..."
 msgstr "Chargement des articles..."
 
-#: simple-infinite-scroll.php:125
+#: weblazer-infinite-scroll-block-themes.php:136
 msgid "All posts have been loaded."
 msgstr "Tous les articles ont été chargés."
 
-#: simple-infinite-scroll.php:126
+#: weblazer-infinite-scroll-block-themes.php:137
 msgid "Error loading posts."
 msgstr "Erreur lors du chargement des articles."

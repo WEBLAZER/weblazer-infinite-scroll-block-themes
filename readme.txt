@@ -1,38 +1,49 @@
-# Weblazer Infinite Scroll for Block Themes
+=== Weblazer Infinite Scroll for Block Themes ===
+Contributors: weblazer
+Tags: infinite scroll, load more, query loop, scrolling, performance
+Requires at least: 6.8
+Tested up to: 6.9
+Stable tag: 1.0.1
+Requires PHP: 7.4
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 High-performance infinite scroll for WordPress. Native JS, SEO-friendly with URL synchronization. Optimized for Block Themes and the Query Loop block.
 
-## Description
+== Description ==
 
 Weblazer Infinite Scroll provides a way to add infinite scrolling to your WordPress archives. Built with performance in mind, it is written in Vanilla JS and relies on the native Intersection Observer API for efficient scroll detection.
 
 This plugin is specifically optimized for modern WordPress block themes and the Query Loop block, ensuring seamless integration with the Site Editor. It also features URL synchronization, which updates the browser address bar as users scroll through different pages.
 
-## Key Features
-
-* **Zero Dependencies**: No jQuery. Pure Vanilla JS.
-* **Efficient**: Optimized with the Intersection Observer API.
-* **URL Sync**: Browser address bar updates as you scroll.
-* **Block Theme Optimized**: Works seamlessly with modern Query Loop blocks.
-* **i18n Ready**: Ready for translation.
-
-## Installation
+== Installation ==
 
 1. Upload the plugin directory to your `/wp-content/plugins/` directory.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
-3. The plugin will automatically detect post lists on your archive pages.
+3. The plugin will automatically detect post lists on your archive pages that use standard WordPress pagination classes.
 
-## For Developers
+== For Developers ==
 
-You can hook into the event when new posts are loaded:
+You can hook into the event when new posts are loaded to re-run your custom scripts:
 
-```javascript
+`
 document.addEventListener('weblazer:infinite-scroll:posts-loaded', (e) => {
     console.log('Page loaded:', e.detail.page);
     console.log('URL:', e.detail.url);
 });
-```
+`
 
-## License
+== Screenshots ==
 
-GPL v2 or later.
+1. Loading indicator during post fetching.
+
+== Changelog ==
+
+= 1.0.1 =
+* Renamed plugin to Weblazer Infinite Scroll for Block Themes to meet WordPress repository requirements.
+* Cleaned up marketing language in readme.
+* Improved prefixing for better compatibility.
+* Added support for custom events.
+
+= 1.0.0 =
+* Initial public release.
