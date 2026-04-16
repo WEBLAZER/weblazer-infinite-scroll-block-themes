@@ -2,8 +2,8 @@
 Contributors: weblazer
 Tags: infinite scroll, load more, query loop, scrolling, performance
 Requires at least: 6.8
-Tested up to: 6.9
-Stable tag: 1.0.1
+Tested up to: 7.0
+Stable tag: 1.0.2
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -38,6 +38,10 @@ document.addEventListener('weblazer:infinite-scroll:posts-loaded', (e) => {
 1. Loading indicator during post fetching.
 
 == Changelog ==
+
+= 1.0.2 - 2026-04-16 =
+* ✅ Verified compatibility with WordPress 7.0.
+* 🚀 Maintenance release.
 
 = 1.0.1 =
 * Renamed plugin to Weblazer Infinite Scroll for Block Themes to meet WordPress repository requirements.

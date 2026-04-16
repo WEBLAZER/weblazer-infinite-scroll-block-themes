@@ -4,7 +4,7 @@
  * Plugin URI: https://wordpress.org/plugins/weblazer-infinite-scroll-block-themes/
  * GitHub Plugin URI: https://github.com/WEBLAZER/weblazer-infinite-scroll-block-themes
  * Description: High-performance infinite scroll for WordPress. Native JS, SEO friendly with URL synchronization. Optimized for Block Themes and the Query Loop block.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: weblazer
  * Author URI: https://profiles.wordpress.org/weblazer/
  * License: GPL v2 or later
@@ -12,7 +12,7 @@
  * Text Domain: weblazer-infinite-scroll-block-themes
  * Domain Path: /languages
  * Requires at least: 6.8
- * Tested up to: 6.9
+ * Tested up to: 7.0
  * Requires PHP: 7.4
  *
  * @package WeblazerInfiniteScrollBlockThemes
@@ -31,7 +31,7 @@ class Weblazer_Infinite_Scroll_Block_Themes {
     /**
      * Plugin version
      */
-    const VERSION = '1.0.1';
+    const VERSION = '1.0.2';
 
     /**
      * Plugin directory path
